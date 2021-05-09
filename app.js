@@ -3,6 +3,9 @@ const express = require('express');
 const path = require('path');
 const dotenv = require('dotenv');
 
+const Podlet = require("@podium/podlet");
+const fs = require("fs");
+
 const app = express();
 
 const port = process.env.PORT || 3000;
@@ -22,6 +25,28 @@ app.set('port', port);
 app.get('/', (req, res) => {
     res.render('head');
 })
+
+// Basic definition of the podlet
+const podlet = new Podlet({
+    name: "hbsHead", // required
+    version: "1.0.0", // required
+    pathname: "/", // required
+    manifest: "/manifest.json", // optional, defaults to '/manifest.json'
+    development: true, // optional, defaults to false
+  });
+  
+  // apply middleware
+  app.use(podlet.middleware());
+  
+  // add HTML to send. This is the div ID in public/index.html
+  app.get(podlet.content(), (req, res) => {
+    res.status(200).podiumSend('<div id="hbs-head"></div>');
+  });
+  
+  // generate the podlet manifest
+  app.get(podlet.manifest(), (req, res) => {
+    res.status(200).send(podlet);
+  });
 
 const server = app.listen(app.get('port'), function () {
   console.log('Servidor en puerto ' + app.get('port'));
