@@ -4,7 +4,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 
 const Podlet = require("@podium/podlet");
-const fs = require("fs");
+
 
 const app = express();
 
@@ -22,9 +22,8 @@ app.engine('.hbs', exphbs({
 
 app.set('port', port);
 
-app.get('/', (req, res) => {
-    res.render('head');
-})
+const domain = 'http://localhost';
+const url = `${domain}:${port}`;
 
 // Basic definition of the podlet
 const podlet = new Podlet({
@@ -36,17 +35,31 @@ const podlet = new Podlet({
   });
   
   // apply middleware
-  app.use(podlet.middleware());
+  app.use(podlet.middleware());  
   
   // add HTML to send. This is the div ID in public/index.html
   app.get(podlet.content(), (req, res) => {
-    res.status(200).podiumSend('<div id="hbs-head"></div>');
-  });
-  
+    res.status(200).podiumSend(`
+        <app-header></app-header>
+        <script type="module">
+          import { MessageBus } from "https://cdn.jsdelivr.net/npm/@podium/browser";
+          const messageBus = new MessageBus();
+
+          const head = document.querySelector("app-header");
+          head.addEventListener("login", () => {
+            messageBus.publish('internalchannel', 'login', {message: 'login', from: 'vue head'});
+            console.log('pong')
+          });
+        </script>
+    `);
+});
   // generate the podlet manifest
   app.get(podlet.manifest(), (req, res) => {
     res.status(200).send(podlet);
   });
+
+  app.use('/js', express.static('src'));
+podlet.js({ value: `${url}/js/header.js` });
 
 const server = app.listen(app.get('port'), function () {
   console.log('Servidor en puerto ' + app.get('port'));
